@@ -90,7 +90,7 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
 }
 
 // OAuth callback handler - exchange code for session token
-// Calls /api/oauth/mobile endpoint which returns JSON with app_session_id and user
+// Calls /api/auth/mobile endpoint which returns JSON with app_session_id and user
 export async function exchangeOAuthCode(
   code: string,
   state: string,

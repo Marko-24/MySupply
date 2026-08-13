@@ -72,7 +72,7 @@ export const getRedirectUri = () => {
   if (ReactNative.Platform.OS === "web") {
     return `${getApiBaseUrl()}/api/oauth/callback`;
   } else {
-    return Linking.createURL("/oauth/callback", {
+    return Linking.createURL("/auth/callback", {
       scheme: env.deepLinkScheme,
     });
   }
