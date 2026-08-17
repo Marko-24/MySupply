@@ -7,14 +7,35 @@ import {
     TouchableOpacity,
     Linking,
     Alert,
+    Modal,
+    TextInput,
+    ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 
+const generatePickupCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `SB-${result}`;
+};
+
 export default function BoxDetailsScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+
+    // Состојби за плаќање и кодови
     const [loading, setLoading] = useState(false);
+    const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+    const [pickupCode, setPickupCode] = useState<string | null>(null);
+
+    // Полиња за платежна картичка
+    const [cardNumber, setCardNumber] = useState("");
+    const [expiry, setExpiry] = useState("");
+    const [cvv, setCvv] = useState("");
 
     // Извлекување на податоците испратени преку параметри
     const box = {
@@ -46,17 +67,39 @@ export default function BoxDetailsScreen() {
         }
     };
 
-    const handleReserve = () => {
+    // Отворање на модалот за плаќање
+    const handleOpenPayment = () => {
+        setIsPaymentModalVisible(true);
+    };
+
+    // Обработка на плаќањето и генерирање на код
+    const handleProcessPayment = () => {
+        if (!cardNumber || !expiry || !cvv) {
+            Alert.alert("Грешка", "Ве молиме пополнете ги сите полиња за плаќање.");
+            return;
+        }
+
         setLoading(true);
-        // Тука во иднина ќе отиде записот во 'orders' табелата
+
         setTimeout(() => {
             setLoading(false);
+            const newCode = generatePickupCode();
+            setPickupCode(newCode);
+            setIsPaymentModalVisible(false);
+
+            // ТУКА: Во реална апликација испраќаш барање до backend/Supabase:
+            // await supabase.from('orders').insert({
+            //   box_id: box.id,
+            //   pickup_code: newCode,
+            //   status: 'paid'
+            // });
+
             Alert.alert(
-                "Успешна резервација! 🎉",
-                `Успешно резервиравте "${box.title}". Ве молиме подигнете ја во периодот: ${box.pickup_start_time} - ${box.pickup_end_time}.`,
-                [{ text: "Во ред", onPress: () => router.back() }]
+                "Успешно плаќање! 🎉",
+                `Вашата резервација е потврдена.\n\nВашиот Pickup код е:\n👉 ${newCode} 👈\n\nПокажете го овој код во ресторанот при подигнување.`,
+                [{ text: "Во ред" }]
             );
-        }, 1000);
+        }, 1500);
     };
 
     return (
@@ -117,6 +160,14 @@ export default function BoxDetailsScreen() {
                         </View>
                     </View>
 
+                    {/* Приказ на генерираниот Pickup код доколку е извршено плаќање */}
+                    {pickupCode && (
+                        <View style={styles.codeCard}>
+                            <Text style={styles.codeTitle}>Вашиот Pickup код за подигнување:</Text>
+                            <Text style={styles.codeValue}>{pickupCode}</Text>
+                        </View>
+                    )}
+
                     <View style={styles.divider} />
 
                     {/* Info Details */}
@@ -161,15 +212,88 @@ export default function BoxDetailsScreen() {
                 )}
 
                 <TouchableOpacity
-                    style={[styles.reserveButton, loading && { opacity: 0.7 }]}
-                    onPress={handleReserve}
-                    disabled={loading}
+                    style={styles.reserveButton}
+                    onPress={handleOpenPayment}
                 >
-                    <Text style={styles.reserveButtonText}>
-                        {loading ? "Се обработува..." : "Резервирај сега"}
-                    </Text>
+                    <Text style={styles.reserveButtonText}>💳 Плати и Резервирај</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* MODAL ЗА ПЛАЌАЊЕ */}
+            <Modal
+                visible={isPaymentModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsPaymentModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Плаќање</Text>
+                        <Text style={styles.modalSubTitle}>
+                            Вкупно за плаќање: {box.discounted_price} ден.
+                        </Text>
+
+                        {/* БРЗО КОПЧЕ ЗА ТЕСТИРАЊЕ */}
+                        <TouchableOpacity
+                            style={styles.autoFillButton}
+                            onPress={() => {
+                                setCardNumber("4242 4242 4242 4242");
+                                setExpiry("12/28");
+                                setCvv("123");
+                            }}
+                        >
+                            <Text style={styles.autoFillButtonText}>
+                                🧪 Auto-fill Тест Картичка
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Број на картичка (16 цифри)"
+                            keyboardType="numeric"
+                            value={cardNumber}
+                            onChangeText={setCardNumber}
+                        />
+
+                        <View style={styles.rowInputs}>
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="ММ/ГГ"
+                                value={expiry}
+                                onChangeText={setExpiry}
+                            />
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="CVV"
+                                keyboardType="numeric"
+                                secureTextEntry
+                                value={cvv}
+                                onChangeText={setCvv}
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.payButton, loading && { opacity: 0.7 }]}
+                            onPress={handleProcessPayment}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.payButtonText}>Потврди и Плати</Text>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setIsPaymentModalVisible(false)}
+                            disabled={loading}
+                        >
+                            <Text style={styles.closeButtonText}>Откажи</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenContainer>
     );
 }
@@ -304,6 +428,27 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontSize: 12,
     },
+    codeCard: {
+        marginTop: 16,
+        padding: 16,
+        backgroundColor: "#e8f7ee",
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#44b273",
+        alignItems: "center",
+    },
+    codeTitle: {
+        fontSize: 13,
+        color: "#2e7d32",
+        fontWeight: "600",
+    },
+    codeValue: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#1b5e20",
+        letterSpacing: 2,
+        marginTop: 4,
+    },
     infoSection: {
         gap: 16,
     },
@@ -368,5 +513,79 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+    },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContainer: {
+        width: "100%",
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "#333",
+    },
+    modalSubTitle: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 12,
+        marginTop: 4,
+    },
+    autoFillButton: {
+        backgroundColor: "#eef2ff",
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 12,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#6366f1",
+    },
+    autoFillButtonText: {
+        color: "#6366f1",
+        fontWeight: "bold",
+        fontSize: 13,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 15,
+        marginBottom: 12,
+    },
+    rowInputs: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    payButton: {
+        backgroundColor: "#44b273",
+        borderRadius: 8,
+        paddingVertical: 14,
+        alignItems: "center",
+        marginTop: 8,
+    },
+    payButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    closeButton: {
+        marginTop: 10,
+        alignItems: "center",
+        paddingVertical: 10,
+    },
+    closeButtonText: {
+        color: "#888",
+        fontSize: 14,
     },
 });

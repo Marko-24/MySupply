@@ -7,12 +7,11 @@ import {
     TextInput,
     StyleSheet,
     ScrollView,
-    Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 
-// Тип за Vendor според Supabase базата
+// Типови за базата
 interface Vendor {
     id: string;
     name: string;
@@ -21,9 +20,10 @@ interface Vendor {
     address: string;
     image_url?: string;
     phone_number?: string;
+    story?: string;
+    origin_region?: string;
 }
 
-// Тип за Surprise Box според Supabase базата
 interface SurpriseBox {
     id: string;
     vendor_id: string;
@@ -38,7 +38,53 @@ interface SurpriseBox {
     vendor?: Vendor;
 }
 
-// Пример податоци усогласени со Supabase структурата
+// 1. Податоци за Квизот (Гејмификација)
+const DAILY_QUIZ = {
+    question: "Колку литри вода се заштедуваат со спасување на 1 Surprise Box?",
+    options: [
+        { text: "50 литри", isCorrect: false },
+        { text: "250 литри", isCorrect: false },
+        { text: "1000 литри", isCorrect: true },
+    ],
+    correctExplanation: "🎉 ТОЧНО! За производство на само 1kg храна се трошат над 1000 литри вода. Со секоја спасена кутија правите огромна разлика!",
+    wrongExplanation: "❌ Неточно! Потрошувачката на вода во индустријата за храна е многу поголема. Обидете се повторно!",
+};
+
+// 2. Податоци за Производители (Meet the Producer & Митови)
+const PRODUCER_STORIES = [
+    {
+        id: "p-1",
+        name: "Фарма Малешево",
+        region: "⛰️ Малешевски Планини",
+        story: "Слободно пасење на 800м надморска височина. Традиционален рецепт за сирење стар 60 години.",
+        myth: "🥚 Мит: Бледата жолчка значи помалку хранливи материи?",
+        fact: "Вистина: Портокаловата жолчка доаѓа од природна паша на отворено!",
+    },
+    {
+        id: "p-2",
+        name: "Пчеларство Јованови",
+        region: "🌿 Еколошки Чист Регион",
+        story: "Три генерации пчелари. Нефилтриран и сиров мед директно од кошничарник.",
+        myth: "🍯 Мит: Кристализираниот мед е расипан?",
+        fact: "Вистина: Кристализацијата докажува дека медот е 100% природен!",
+    },
+];
+
+// 3. Податоци за Ресторани (Зад Кулисите)
+const RESTAURANT_STORIES = [
+    {
+        id: "r-1",
+        title: "👨‍🍳 Зад кулисите: Свежина пред затворање",
+        text: "Рестораните подготвуваат свежи порции за ручек/вечера, а неотворените додатоци на крајот од денот наместо во отпад, се пакуваат во вашата Surprise Box!",
+    },
+    {
+        id: "r-2",
+        title: "🍕 Нулта Отпад (Zero Waste)",
+        text: "Со секоја купена кутија од пицерија или ресторан, спречувате преку 1.5кг CO2 емисии во атмосферата.",
+    },
+];
+
+// Пример кутии за почетниот feed
 const MOCK_BOXES: SurpriseBox[] = [
     {
         id: "box-1",
@@ -149,7 +195,6 @@ function BoxCard({ item }: { item: SurpriseBox }) {
 
     return (
         <TouchableOpacity style={styles.card} onPress={handlePressCard} activeOpacity={0.9}>
-            {/* Visual Header */}
             <View
                 style={[
                     styles.imageContainer,
@@ -169,7 +214,6 @@ function BoxCard({ item }: { item: SurpriseBox }) {
                 </View>
             </View>
 
-            {/* Content */}
             <View style={styles.cardContent}>
                 <Text style={styles.vendorName}>{item.vendor?.name}</Text>
                 <Text style={styles.boxTitle}>{item.title}</Text>
@@ -177,14 +221,12 @@ function BoxCard({ item }: { item: SurpriseBox }) {
                     {item.description}
                 </Text>
 
-                {/* Price Section */}
                 <View style={styles.priceRow}>
                     <Text style={styles.discountedPrice}>{item.discounted_price} ден.</Text>
                     <Text style={styles.originalPrice}>{item.original_price} ден.</Text>
                     <Text style={styles.quantityText}>Останати: {item.quantity_available}</Text>
                 </View>
 
-                {/* Info Section */}
                 <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
                         <Text style={styles.metaIcon}>⏱️</Text>
@@ -200,7 +242,6 @@ function BoxCard({ item }: { item: SurpriseBox }) {
                     </View>
                 </View>
 
-                {/* Action Button */}
                 <View style={styles.actionButtonsRow}>
                     <View style={styles.addToCartButton}>
                         <Text style={styles.addToCartButtonText}>Види детали</Text>
@@ -214,6 +255,9 @@ function BoxCard({ item }: { item: SurpriseBox }) {
 export default function FeedScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<"all" | "restaurant" | "producer">("all");
+
+    // Состојба за избраниот одговор од квизот
+    const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
     const filteredBoxes = MOCK_BOXES.filter((item) => {
         const matchesSearch =
@@ -277,7 +321,90 @@ export default function FeedScreen() {
                     </View>
                 </View>
 
-                {/* Items List */}
+                {/* --- 1. СЕКЦИЈА ЗА ТАБ "СИТЕ": ДНЕВЕН ЕКО-КВИЗ (ГЕЈМИФИКАЦИЈА) --- */}
+                {activeTab === "all" && (
+                    <View style={styles.quizContainer}>
+                        <Text style={styles.quizHeader}>🎯 Дневен Еко-Предизвик</Text>
+                        <Text style={styles.quizQuestion}>{DAILY_QUIZ.question}</Text>
+
+                        <View style={styles.quizOptionsRow}>
+                            {DAILY_QUIZ.options.map((option, index) => {
+                                const isSelected = selectedOption === index;
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[
+                                            styles.quizOptionButton,
+                                            isSelected && (option.isCorrect ? styles.quizOptionCorrect : styles.quizOptionWrong)
+                                        ]}
+                                        onPress={() => setSelectedOption(index)}
+                                    >
+                                        <Text style={[
+                                            styles.quizOptionText,
+                                            isSelected && { color: "#fff", fontWeight: "bold" }
+                                        ]}>
+                                            {option.text}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* Приказ на објаснувањето во зависност од изборот */}
+                        {selectedOption !== null && (
+                            <Text style={[
+                                styles.quizExplanation,
+                                { color: DAILY_QUIZ.options[selectedOption].isCorrect ? "#15803d" : "#b91c1c" }
+                            ]}>
+                                {DAILY_QUIZ.options[selectedOption].isCorrect
+                                    ? DAILY_QUIZ.correctExplanation
+                                    : DAILY_QUIZ.wrongExplanation}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+                {/* --- 2. СЕКЦИЈА ЗА ТАБ "РЕСТОРАНИ": ЗАД КУЛИСИТЕ --- */}
+                {activeTab === "restaurant" && (
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>🍽️ Приказни од кујните</Text>
+                        <Text style={styles.sectionSubtitle}>Како рестораните спречуваат отпад од храна</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                            {RESTAURANT_STORIES.map((story) => (
+                                <View key={story.id} style={styles.restaurantStoryCard}>
+                                    <Text style={styles.restaurantStoryTitle}>{story.title}</Text>
+                                    <Text style={styles.restaurantStoryText}>{story.text}</Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* --- 3. СЕКЦИЈА ЗА ТАБ "ПРОИЗВОДИТЕЛИ": MEET THE PRODUCER & МИТОВИ --- */}
+                {activeTab === "producer" && (
+                    <View style={styles.sectionContainer}>
+                        <Text style={styles.sectionTitle}>👨‍🌾 Запознај ги фармерите & Митови</Text>
+                        <Text style={styles.sectionSubtitle}>Автентични приказни и факти за органиката</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                            {PRODUCER_STORIES.map((producer) => (
+                                <View key={producer.id} style={styles.producerCard}>
+                                    <Text style={styles.producerBadge}>{producer.region}</Text>
+                                    <Text style={styles.producerName}>{producer.name}</Text>
+                                    <Text style={styles.producerStory}>{producer.story}</Text>
+                                    <View style={styles.mythDivider} />
+                                    <Text style={styles.producerMyth}>{producer.myth}</Text>
+                                    <Text style={styles.producerFact}>{producer.fact}</Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Главна листа на кутии */}
+                <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 12 }]}>
+                    📦 Достапни Surprise Boxes
+                </Text>
+
                 {filteredBoxes.length > 0 ? (
                     <FlatList
                         data={filteredBoxes}
@@ -315,7 +442,6 @@ const styles = StyleSheet.create({
     brandSubtitle: {
         fontSize: 13,
         color: "#666",
-        color: "#666",
         marginTop: 2,
     },
     tabContainer: {
@@ -348,7 +474,7 @@ const styles = StyleSheet.create({
         color: "#44b273",
     },
     searchContainer: {
-        marginBottom: 20,
+        marginBottom: 16,
     },
     searchBar: {
         flexDirection: "row",
@@ -369,6 +495,149 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#333",
     },
+
+    // Секција: Квиз / Гејмификација (Таб "Сите")
+    quizContainer: {
+        backgroundColor: "#e8f7ee",
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "#a3e635",
+    },
+    quizHeader: {
+        fontSize: 15,
+        fontWeight: "bold",
+        color: "#15803d",
+        marginBottom: 4,
+    },
+    quizQuestion: {
+        fontSize: 13,
+        color: "#166534",
+        marginBottom: 10,
+        lineHeight: 18,
+    },
+    quizOptionsRow: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    quizOptionButton: {
+        flex: 1,
+        backgroundColor: "#fff",
+        paddingVertical: 8,
+        borderRadius: 8,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#bbf7d0",
+    },
+    quizOptionCorrect: {
+        backgroundColor: "#22c55e",
+        borderColor: "#16a34a",
+    },
+    quizOptionWrong: {
+        backgroundColor: "#ef4444",
+        borderColor: "#dc2626",
+    },
+    quizOptionText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#166534",
+    },
+    quizExplanation: {
+        fontSize: 12,
+        marginTop: 10,
+        fontWeight: "600",
+        backgroundColor: "#ffffffb0",
+        padding: 8,
+        borderRadius: 6,
+    },
+
+    // Општи Секции
+    sectionContainer: {
+        marginBottom: 20,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#111827",
+    },
+    sectionSubtitle: {
+        fontSize: 12,
+        color: "#6b7280",
+        marginTop: 2,
+        marginBottom: 10,
+    },
+    horizontalScroll: {
+        marginHorizontal: -20,
+        paddingHorizontal: 20,
+    },
+
+    // Ресторан Секција
+    restaurantStoryCard: {
+        backgroundColor: "#fef3c7",
+        borderRadius: 12,
+        padding: 14,
+        width: 260,
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: "#fde68a",
+    },
+    restaurantStoryTitle: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#92400e",
+        marginBottom: 6,
+    },
+    restaurantStoryText: {
+        fontSize: 12,
+        color: "#78350f",
+        lineHeight: 16,
+    },
+
+    // Производител Секција
+    producerCard: {
+        backgroundColor: "#eef2ff",
+        borderRadius: 12,
+        padding: 14,
+        width: 270,
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: "#c7d2fe",
+    },
+    producerBadge: {
+        fontSize: 11,
+        fontWeight: "bold",
+        color: "#4338ca",
+    },
+    producerName: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#1e1b4b",
+        marginTop: 2,
+    },
+    producerStory: {
+        fontSize: 12,
+        color: "#3730a3",
+        lineHeight: 16,
+        marginTop: 4,
+    },
+    mythDivider: {
+        height: 1,
+        backgroundColor: "#c7d2fe",
+        marginVertical: 8,
+    },
+    producerMyth: {
+        fontSize: 12,
+        fontWeight: "bold",
+        color: "#312e81",
+    },
+    producerFact: {
+        fontSize: 11,
+        color: "#4338ca",
+        marginTop: 2,
+    },
+
+    // Картичка за Surprise Box
     card: {
         backgroundColor: "#fff",
         borderRadius: 14,

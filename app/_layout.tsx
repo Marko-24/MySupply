@@ -19,12 +19,13 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { supabase } from "@/lib/supabase";
+import { resolveAppRole, type AppRole } from "@/lib/user-role";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
 export const unstable_settings = {
-    initialRouteName: "(auth)",
+    initialRouteName: "(auth)/register",
 };
 
 export default function RootLayout() {
@@ -33,6 +34,7 @@ export default function RootLayout() {
 
     const [isReady, setIsReady] = useState(false);
     const [session, setSession] = useState<any>(null);
+    const [appRole, setAppRole] = useState<AppRole>("user");
 
     const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
     const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
@@ -57,38 +59,57 @@ export default function RootLayout() {
 
     // 1. Проверка на сесијата при старт + Auth Listener
     useEffect(() => {
-        // Прво земете ја тековната сесија од Supabase
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
+        let disposed = false;
+
+        const applySession = async (nextSession: any) => {
+            if (disposed) return;
+            setIsReady(false);
+            setSession(nextSession);
+            if (!nextSession) {
+                setAppRole("user");
+                setIsReady(true);
+                return;
+            }
+            const role = await resolveAppRole(nextSession.user);
+            if (disposed) return;
+            setAppRole(role);
             setIsReady(true);
+        };
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            void applySession(session);
         });
 
-        // Слушајте промени (логирање / одлогирање)
         const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
             console.log(`[Auth Event] ${event}`, newSession?.user?.email ?? "Нема сесија");
-            setSession(newSession);
-            setIsReady(true);
+            void applySession(newSession);
         });
 
         return () => {
+            disposed = true;
             authListener.subscription.unsubscribe();
         };
     }, []);
 
-    // 2. Автоматско пренасочување според сесијата
+    // 2. Автоматско пренасочување според сесијата (ПРЕПРЕНИРАНО КОН REGISTER)
     useEffect(() => {
         if (!isReady) return;
 
         const inAuthGroup = segments[0] === "(auth)";
+        const inCustomerGroup = segments[0] === "(tabs)";
+        const inVendorGroup = (segments[0] as string) === "(vendor)";
+        const vendorAccount = appRole === "vendor";
 
         if (!session && !inAuthGroup) {
-            // Ако корисникот НЕ е најавен, а се обидува да отвори друго освен Auth
-            router.replace("/(auth)/login");
+            router.replace("/(auth)/register");
         } else if (session && inAuthGroup) {
-            // Ако корисникот Е најавен, а се наоѓа на Login/Register
-            router.replace("/(tabs)");
+            router.replace((vendorAccount ? "/(vendor)/boxes" : "/(tabs)/index") as any);
+        } else if (session && vendorAccount && inCustomerGroup) {
+            router.replace("/(vendor)/boxes" as any);
+        } else if (session && !vendorAccount && inVendorGroup) {
+            router.replace("/(tabs)/index" as any);
         }
-    }, [session, isReady, segments]);
+    }, [router, session, appRole, isReady, segments]);
 
     const [queryClient] = useState(
         () =>
@@ -115,7 +136,7 @@ export default function RootLayout() {
         };
     }, [initialInsets, initialFrame]);
 
-    // Додека се проверува сесијата, покажи Loading спинер за да не трепка екранот
+    // Додека се проверува сесијата, покажи Loading спинер
     if (!isReady) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
@@ -129,9 +150,12 @@ export default function RootLayout() {
             <trpc.Provider client={trpcClient} queryClient={queryClient}>
                 <QueryClientProvider client={queryClient}>
                     <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(auth)" />
                         <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="oauth/callback" />
+                        <Stack.Screen name="(vendor)" />
+                        <Stack.Screen name="achievements" />
+                        <Stack.Screen name="details" />
+                        <Stack.Screen name="physical-rewards" />
+                        <Stack.Screen name="dev/theme-lab" />
                     </Stack>
                     <StatusBar style="auto" />
                 </QueryClientProvider>

@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { View, TextInput, Alert, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const router = useRouter();
 
     async function handleLogin() {
@@ -25,22 +30,57 @@ export default function LoginScreen() {
 
         if (error) {
             Alert.alert('Грешка при најава', error.message);
-        } else {
-            // Успешна најава - пренасочи кон главниот екран
-            router.replace('/(tabs)');
+        }
+    }
+
+    async function handleGoogleLogin() {
+        try {
+            setGoogleLoading(true);
+            const redirectUri = makeRedirectUri({
+                path: 'oauth/callback',
+            });
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUri,
+                    skipBrowserRedirect: false,
+                },
+            });
+
+            if (error) {
+                Alert.alert('Грешка при Google најава', error.message);
+                return;
+            }
+
+            if (data?.url) {
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+                if (result.type === 'success' && result.url) {
+                    const parsedUrl = new URL(result.url);
+                    const errorDescription = parsedUrl.searchParams.get('error_description');
+
+                    if (errorDescription) {
+                        Alert.alert('Грешка', errorDescription || 'Автентикацијата не успеа.');
+                    }
+                }
+            }
+        } catch (err: any) {
+            Alert.alert('Грешка', err.message || 'Се појави проблем при најавата.');
+        } finally {
+            setGoogleLoading(false);
         }
     }
 
     return (
         <View style={styles.container}>
             <Image
-                source={require('@/assets/images/logo.jpg')} // Сменете ја патеката со вашата слика
+                source={require('@/assets/images/logo.jpg')}
                 style={styles.logo}
                 resizeMode="contain"
             />
 
             <Text style={styles.title}>MySupply</Text>
-            <Text style={styles.h5}>Добредојдовте! Највете се за да продолжите.</Text>
+            <Text style={styles.h5}>Добредојдовте! Најавете се за да продолжите.</Text>
 
             <TextInput
                 placeholder="Е-пошта"
@@ -58,15 +98,36 @@ export default function LoginScreen() {
                 secureTextEntry
                 style={styles.input}
             />
+
             <TouchableOpacity
                 onPress={handleLogin}
-                disabled={loading}
-                style={[styles.button, loading && styles.buttonDisabled]}
+                disabled={loading || googleLoading}
+                style={[styles.button, (loading || googleLoading) && styles.buttonDisabled]}
             >
                 {loading ? (
                     <ActivityIndicator color="#44b273" />
                 ) : (
                     <Text style={styles.buttonText}>Најави се</Text>
+                )}
+            </TouchableOpacity>
+
+            {/* Разделник */}
+            <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>или</Text>
+                <View style={styles.dividerLine} />
+            </View>
+
+            {/* Google Login Копче */}
+            <TouchableOpacity
+                onPress={handleGoogleLogin}
+                disabled={loading || googleLoading}
+                style={[styles.googleButton, (loading || googleLoading) && styles.buttonDisabled]}
+            >
+                {googleLoading ? (
+                    <ActivityIndicator color="#757575" />
+                ) : (
+                    <Text style={styles.googleButtonText}>Најави се со Google</Text>
                 )}
             </TouchableOpacity>
 
@@ -123,9 +184,24 @@ const styles = StyleSheet.create({
         borderRadius: 9,
         paddingVertical: 12,
         backgroundColor: 'transparent',
-        marginTop: 25,
+        marginTop: 15,
         width: 180,
         alignSelf: 'center',
+    },
+    googleButton: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 9,
+        paddingVertical: 12,
+        backgroundColor: '#fff',
+        width: 220,
+        alignSelf: 'center',
+    },
+    googleButtonText: {
+        color: '#333',
+        fontSize: 15,
+        fontWeight: '600',
+        textAlign: 'center',
     },
     buttonDisabled: {
         opacity: 0.5,
@@ -135,6 +211,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         textAlign: 'center',
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+        width: '80%',
+        alignSelf: 'center',
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#e0e0e0',
+    },
+    dividerText: {
+        marginHorizontal: 10,
+        color: '#888',
+        fontSize: 13,
     },
     registerContainer: {
         flexDirection: 'row',
