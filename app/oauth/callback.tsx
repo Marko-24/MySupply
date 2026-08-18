@@ -111,7 +111,7 @@ export default function RegisterScreen() {
     return (
         <View style={styles.container}>
             <Image
-                source={require('@/assets/images/logo.jpg')}
+                source={require('@/assets/images/logo-transparent.png')}
                 style={styles.logo}
                 resizeMode="contain"
             />

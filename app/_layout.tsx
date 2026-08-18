@@ -91,7 +91,6 @@ export default function RootLayout() {
         };
     }, []);
 
-    // 2. Автоматско пренасочување според сесијата (ПРЕПРЕНИРАНО КОН REGISTER)
     useEffect(() => {
         if (!isReady) return;
 
@@ -103,11 +102,11 @@ export default function RootLayout() {
         if (!session && !inAuthGroup) {
             router.replace("/(auth)/register");
         } else if (session && inAuthGroup) {
-            router.replace((vendorAccount ? "/(vendor)/boxes" : "/(tabs)/index") as any);
+            router.replace((vendorAccount ? "/(vendor)/boxes" : "/(tabs)") as any);
         } else if (session && vendorAccount && inCustomerGroup) {
             router.replace("/(vendor)/boxes" as any);
         } else if (session && !vendorAccount && inVendorGroup) {
-            router.replace("/(tabs)/index" as any);
+            router.replace("/(tabs)" as any);
         }
     }, [router, session, appRole, isReady, segments]);
 
@@ -150,6 +149,7 @@ export default function RootLayout() {
             <trpc.Provider client={trpcClient} queryClient={queryClient}>
                 <QueryClientProvider client={queryClient}>
                     <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="(auth)" />
                         <Stack.Screen name="(tabs)" />
                         <Stack.Screen name="(vendor)" />
                         <Stack.Screen name="achievements" />
