@@ -1,54 +1,40 @@
+import React from "react";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform, View } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { Platform, View, StyleSheet } from "react-native";
 
 export default function TabLayout() {
-    const colors = useColors();
     const insets = useSafeAreaInsets();
-    const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-    const tabBarHeight = 64 + bottomPadding;
+    const bottomMargin = Platform.OS === "web" ? 16 : Math.max(insets.bottom, 12);
+
+    // Нежни светли бои
+    const activeColor = "#10B981"; // Суптилна свежа зелена
+    const inactiveColor = "#9CA3AF"; // Мек пастелен сива
+    const activePillBg = "#ECFDF5"; // Многу нежна зеленкаста основа за активниот икон
+    const barBackground = "#FFFFFF"; // Чиста бела позадина
+    const borderColor = "#F3F4F6"; // Многу бледа гранична линија
 
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.muted,
+                tabBarActiveTintColor: activeColor,
+                tabBarInactiveTintColor: inactiveColor,
                 headerShown: false,
                 tabBarButton: HapticTab,
-                tabBarLabelStyle: {
-                    fontSize: 10,
-                    fontWeight: "600",
-                    marginTop: 2,
-                    marginBottom: -4,
-                },
-                tabBarStyle: {
-                    paddingTop: 6,
-                    paddingBottom: bottomPadding,
-                    height: tabBarHeight,
-                    backgroundColor: colors.surface,
-                    borderTopColor: colors.border,
-                    borderTopWidth: 0.5,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: -2 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 12,
-                    elevation: 8,
-                },
+                tabBarHideOnKeyboard: true,
+                tabBarLabelStyle: styles.label,
+                tabBarStyle: [
+                    styles.floatingTabBar,
+                    {
+                        bottom: bottomMargin,
+                        backgroundColor: barBackground,
+                        borderColor: borderColor,
+                    },
+                ],
                 tabBarBackground: () => (
-                    <View style={{
-                        position: "absolute",
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        backgroundColor: colors.surface,
-                        borderTopLeftRadius: 24,
-                        borderTopRightRadius: 24,
-                        overflow: "hidden",
-                    }} />
+                    <View style={styles.background} />
                 ),
             }}
         >
@@ -56,12 +42,14 @@ export default function TabLayout() {
                 name="index"
                 options={{
                     title: "Feed",
-                    tabBarIcon: ({ color, focused }) => (
-                        <IconSymbol
-                            size={26}
-                            name="house.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ focused }) => (
+                        <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
+                            <IconSymbol
+                                size={focused ? 22 : 20}
+                                name="house.fill"
+                                color={focused ? activeColor : inactiveColor}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -69,12 +57,14 @@ export default function TabLayout() {
                 name="cart"
                 options={{
                     title: "Cart",
-                    tabBarIcon: ({ color, focused }) => (
-                        <IconSymbol
-                            size={26}
-                            name="cart.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ focused }) => (
+                        <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
+                            <IconSymbol
+                                size={focused ? 22 : 20}
+                                name="cart.fill"
+                                color={focused ? activeColor : inactiveColor}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -82,12 +72,14 @@ export default function TabLayout() {
                 name="orders"
                 options={{
                     title: "Orders",
-                    tabBarIcon: ({ color, focused }) => (
-                        <IconSymbol
-                            size={26}
-                            name="list.bullet.clipboard.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ focused }) => (
+                        <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
+                            <IconSymbol
+                                size={focused ? 22 : 20}
+                                name="list.bullet.clipboard.fill"
+                                color={focused ? activeColor : inactiveColor}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -95,12 +87,14 @@ export default function TabLayout() {
                 name="favorites"
                 options={{
                     title: "Favorites",
-                    tabBarIcon: ({ color, focused }) => (
-                        <IconSymbol
-                            size={26}
-                            name="heart.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ focused }) => (
+                        <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
+                            <IconSymbol
+                                size={focused ? 22 : 20}
+                                name="heart.fill"
+                                color={focused ? activeColor : inactiveColor}
+                            />
+                        </View>
                     ),
                 }}
             />
@@ -108,15 +102,56 @@ export default function TabLayout() {
                 name="profile"
                 options={{
                     title: "Profile",
-                    tabBarIcon: ({ color, focused }) => (
-                        <IconSymbol
-                            size={26}
-                            name="person.crop.circle.fill"
-                            color={color}
-                        />
+                    tabBarIcon: ({ focused }) => (
+                        <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
+                            <IconSymbol
+                                size={focused ? 22 : 20}
+                                name="person.crop.circle.fill"
+                                color={focused ? activeColor : inactiveColor}
+                            />
+                        </View>
                     ),
                 }}
             />
         </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+    floatingTabBar: {
+        position: "absolute",
+        left: 16,
+        right: 16,
+        height: 64,
+        borderRadius: 32,
+        borderWidth: 1,
+        paddingBottom: 6,
+        paddingTop: 6,
+
+        // Многу мека и топла светла сенка
+        shadowColor: "#64748B",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 6,
+    },
+    background: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 32,
+        overflow: "hidden",
+    },
+    iconBox: {
+        width: 38,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 2,
+    },
+    label: {
+        fontSize: 10,
+        fontWeight: "700",
+        letterSpacing: -0.1,
+    },
+});
