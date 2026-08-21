@@ -1,46 +1,160 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { ActionButton, GREEN, INK, MUTED, PageHeader, PRODUCTS, StatusPill, styles as shared } from "@/components/vendor-dashboard";
+import { ActionButton, PRIMARY, INK, MUTED, BORDER, SURFACE, PageHeader } from "@/components/vendor-dashboard";
+
+// Стандардни генерални шаблони (Too Good To Go концепт)
+const SURPRISE_TEMPLATES = [
+  {
+    id: "1",
+    title: "Пекарски Surprise Box",
+    category: "Пекара & Печива",
+    estimatedValue: "600 ден.",
+    price: "200 ден.",
+    icon: "🥐",
+    pickupTime: "18:00 - 20:00",
+  },
+  {
+    id: "2",
+    title: "Готвена храна Surprise Box",
+    category: "Ресторан",
+    estimatedValue: "900 ден.",
+    price: "300 ден.",
+    icon: "🍲",
+    pickupTime: "20:30 - 22:00",
+  },
+  {
+    id: "3",
+    title: "Десерт & Слаткарница Box",
+    category: "Слатки & Колачи",
+    estimatedValue: "750 ден.",
+    price: "250 ден.",
+    icon: "🍰",
+    pickupTime: "19:00 - 21:00",
+  },
+  {
+    id: "4",
+    title: "Свежи производи Box",
+    category: "Овошје, Зеленчук & Млечно",
+    estimatedValue: "800 ден.",
+    price: "280 ден.",
+    icon: "🧺",
+    pickupTime: "17:00 - 19:00",
+  },
+];
 
 export default function ProductsScreen() {
-  const [query, setQuery] = useState("All");
-  const products = useMemo(() => query === "All" ? PRODUCTS : PRODUCTS.filter((product) => product.category === query), [query]);
-  return <ScreenContainer><ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-    <PageHeader eyebrow="Catalog" title="Products" subtitle="Keep your everyday inventory accurate and ready." action="Add product" />
-    <View style={styles.summary}><View><Text style={styles.summaryLabel}>Catalog health</Text><Text style={styles.summaryValue}>92%</Text><Text style={styles.summaryCaption}>4 products · updated just now</Text></View><View style={styles.healthRing}><Text style={styles.healthRingText}>A</Text></View></View>
-    <View style={styles.categoryRow}>{["All", "Bakery", "Prepared food", "Pantry"].map((item) => <Pressable key={item} onPress={() => setQuery(item)} style={[styles.category, query === item && styles.categoryActive]}><Text style={[styles.categoryText, query === item && styles.categoryTextActive]}>{item}</Text></Pressable>)}</View>
-    <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Inventory</Text><Text style={styles.sectionMeta}>{products.length} products</Text></View>
-    <FlatList data={products} scrollEnabled={false} keyExtractor={(item) => item.id} contentContainerStyle={styles.list} renderItem={({ item }) => <View style={styles.productCard}><View style={styles.productIcon}><Text style={styles.productIconText}>{item.category === "Bakery" ? "⌁" : item.category === "Pantry" ? "◇" : "＋"}</Text></View><View style={styles.productInfo}><Text style={styles.productName}>{item.name}</Text><Text style={styles.productCategory}>{item.category} · {item.price}</Text><View style={styles.stockRow}><Text style={styles.stockText}>{item.stock} units</Text><StatusPill status={item.status} /></View></View><Pressable onPress={() => Alert.alert("Edit product", `Editing ${item.name}`)} style={({ pressed }) => [styles.moreButton, pressed && shared.pressed]}><Text style={styles.moreText}>•••</Text></Pressable></View>} />
-    <ActionButton label="Import or add products" secondary onPress={() => Alert.alert("Add products", "Choose between creating a product or importing your catalog.")} />
-  </ScrollView></ScreenContainer>;
+  const [selectedCategory, setSelectedCategory] = useState("Сите");
+
+  return (
+      <ScreenContainer>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          <PageHeader
+              eyebrow="Брзо објавување"
+              title="Шаблони за Пакети"
+              subtitle="Изберете категорија и веднаш пуштете Surprise Box за денес."
+              onAction={() => Alert.alert("Нов шаблон", "Креирајте нов генерален тип на Surprise Box.")}
+          />
+
+          {/* Минималистичка листа на генерални типови пакети */}
+          <FlatList
+              data={SURPRISE_TEMPLATES}
+              scrollEnabled={false}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.list}
+              renderItem={({ item }) => (
+                  <View style={styles.card}>
+                    <View style={styles.iconWrapper}>
+                      <Text style={styles.iconText}>{item.icon}</Text>
+                    </View>
+
+                    <View style={styles.cardContent}>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardCategory}>{item.category}</Text>
+
+                      <View style={styles.priceRow}>
+                        <Text style={styles.priceLabel}>
+                          Вредност: <Text style={styles.oldPrice}>{item.estimatedValue}</Text>
+                        </Text>
+                        <Text style={styles.finalPrice}>{item.price}</Text>
+                      </View>
+
+                      <Text style={styles.pickupText}>🕒 Подигање: {item.pickupTime}</Text>
+                    </View>
+
+                    <Pressable
+                        onPress={() =>
+                            Alert.alert(
+                                "Пушти во продажба",
+                                `Колку "${item.title}" имате за денес?`,
+                                [
+                                  { text: "Откажи", style: "cancel" },
+                                  {
+                                    text: "Пушти 3 пакети",
+                                    onPress: () => Alert.alert("Успешно!", "Пакетите се поставени во активни понуди."),
+                                  },
+                                ]
+                            )
+                        }
+                        style={({ pressed }) => [styles.activateBtn, pressed && { opacity: 0.8 }]}
+                    >
+                      <Text style={styles.activateBtnText}>+ Пушти</Text>
+                    </Pressable>
+                  </View>
+              )}
+          />
+
+          <ActionButton
+              label="+ Креирај нов тип Surprise Box"
+              secondary
+              onPress={() => Alert.alert("Креирај тип", "Внесете категорија, цена и време за подигање.")}
+          />
+        </ScrollView>
+      </ScreenContainer>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 34 },
-  summary: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 18, borderRadius: 20, backgroundColor: INK, marginBottom: 20 },
-  summaryLabel: { color: "#B9C9BF", fontSize: 12, fontWeight: "700" },
-  summaryValue: { color: "#fff", fontSize: 32, fontWeight: "800", marginTop: 4 },
-  summaryCaption: { color: "#B9C9BF", fontSize: 12, marginTop: 2 },
-  healthRing: { width: 62, height: 62, borderWidth: 5, borderColor: "#5BB77D", borderRadius: 40, alignItems: "center", justifyContent: "center" },
-  healthRingText: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 },
-  category: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: "#F0F3F1" },
-  categoryActive: { backgroundColor: GREEN },
-  categoryText: { color: MUTED, fontSize: 12, fontWeight: "700" },
-  categoryTextActive: { color: "#fff" },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
-  sectionTitle: { color: INK, fontSize: 19, fontWeight: "800" },
-  sectionMeta: { color: MUTED, fontSize: 12, fontWeight: "700" },
-  list: { gap: 10, marginBottom: 18 },
-  productCard: { flexDirection: "row", alignItems: "center", padding: 13, borderRadius: 18, borderWidth: 1, borderColor: "#E8EFEB", backgroundColor: "#fff" },
-  productIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EAF5EE", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  productIconText: { color: GREEN, fontSize: 26, fontWeight: "800" },
-  productInfo: { flex: 1 },
-  productName: { color: INK, fontSize: 15, fontWeight: "800" },
-  productCategory: { color: MUTED, fontSize: 12, marginTop: 4 },
-  stockRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 9, paddingRight: 4 },
-  stockText: { color: INK, fontSize: 12, fontWeight: "800" },
-  moreButton: { padding: 8, alignSelf: "flex-start" },
-  moreText: { color: MUTED, fontWeight: "900", letterSpacing: 1 },
+  container: { padding: 20, paddingBottom: 100 },
+
+  list: { gap: 14, marginBottom: 20 },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    gap: 12,
+  },
+  iconWrapper: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconText: { fontSize: 26 },
+
+  cardContent: { flex: 1, gap: 2 },
+  cardTitle: { color: INK, fontSize: 15, fontWeight: "800" },
+  cardCategory: { color: MUTED, fontSize: 12, fontWeight: "600" },
+
+  priceRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  priceLabel: { color: MUTED, fontSize: 11, fontWeight: "600" },
+  oldPrice: { textDecorationLine: "line-through", color: MUTED },
+  finalPrice: { color: PRIMARY, fontSize: 14, fontWeight: "800" },
+
+  pickupText: { color: INK, fontSize: 11, fontWeight: "700", marginTop: 2 },
+
+  activateBtn: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignSelf: "center",
+  },
+  activateBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
 });

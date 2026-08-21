@@ -10,11 +10,11 @@ export default function TabLayout() {
     const bottomMargin = Platform.OS === "web" ? 16 : Math.max(insets.bottom, 12);
 
     // Нежни светли бои
-    const activeColor = "#10B981"; // Суптилна свежа зелена
-    const inactiveColor = "#9CA3AF"; // Мек пастелен сива
-    const activePillBg = "#ECFDF5"; // Многу нежна зеленкаста основа за активниот икон
-    const barBackground = "#FFFFFF"; // Чиста бела позадина
-    const borderColor = "#F3F4F6"; // Многу бледа гранична линија
+    const activeColor = "#10B981";
+    const inactiveColor = "#9CA3AF";
+    const activePillBg = "#ECFDF5";
+    const barBackground = "#FFFFFF";
+    const borderColor = "#F3F4F6";
 
     return (
         <Tabs
