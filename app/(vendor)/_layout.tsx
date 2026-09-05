@@ -4,17 +4,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform, View, StyleSheet } from "react-native";
+import { useColors } from "@/hooks/use-colors";
 
-export default function TabLayout() {
+export default function VendorTabLayout() {
+    const colors = useColors();
     const insets = useSafeAreaInsets();
     const bottomMargin = Platform.OS === "web" ? 16 : Math.max(insets.bottom, 12);
 
-    // Нежни светли бои
-    const activeColor = "#10B981";
-    const inactiveColor = "#9CA3AF";
+    const activeColor = colors.primary ?? "#10B981";
+    const inactiveColor = colors.muted ?? "#9CA3AF";
     const activePillBg = "#ECFDF5";
-    const barBackground = "#FFFFFF";
-    const borderColor = "#F3F4F6";
+    const barBackground = colors.surface ?? "#FFFFFF";
+    const borderColor = colors.border ?? "#F3F4F6";
 
     return (
         <Tabs
@@ -34,19 +35,19 @@ export default function TabLayout() {
                     },
                 ],
                 tabBarBackground: () => (
-                    <View style={styles.background} />
+                    <View style={[styles.background, { backgroundColor: barBackground }]} />
                 ),
             }}
         >
             <Tabs.Screen
-                name="index"
+                name="boxes"
                 options={{
-                    title: "Feed",
+                    title: "Пакети",
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
                             <IconSymbol
                                 size={focused ? 22 : 20}
-                                name="house.fill"
+                                name="archivebox.fill"
                                 color={focused ? activeColor : inactiveColor}
                             />
                         </View>
@@ -54,14 +55,14 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="cart"
+                name="products"
                 options={{
-                    title: "Cart",
+                    title: "Продукти",
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
                             <IconSymbol
                                 size={focused ? 22 : 20}
-                                name="cart.fill"
+                                name="tag.fill"
                                 color={focused ? activeColor : inactiveColor}
                             />
                         </View>
@@ -69,9 +70,9 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="orders"
+                name="reservations"
                 options={{
-                    title: "Orders",
+                    title: "Резервации",
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
                             <IconSymbol
@@ -84,14 +85,14 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="favorites"
+                name="history"
                 options={{
-                    title: "Favorites",
+                    title: "Историја",
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
                             <IconSymbol
                                 size={focused ? 22 : 20}
-                                name="heart.fill"
+                                name="clock.fill"
                                 color={focused ? activeColor : inactiveColor}
                             />
                         </View>
@@ -101,12 +102,12 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="profile"
                 options={{
-                    title: "Profile",
+                    title: "Профил",
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconBox, focused && { backgroundColor: activePillBg }]}>
                             <IconSymbol
                                 size={focused ? 22 : 20}
-                                name="person.crop.circle.fill"
+                                name="storefront.fill"
                                 color={focused ? activeColor : inactiveColor}
                             />
                         </View>
@@ -127,8 +128,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         paddingBottom: 6,
         paddingTop: 6,
-
-        // Многу мека и топла светла сенка
         shadowColor: "#64748B",
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.08,
@@ -137,7 +136,6 @@ const styles = StyleSheet.create({
     },
     background: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "#FFFFFF",
         borderRadius: 32,
         overflow: "hidden",
     },
